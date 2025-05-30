@@ -1,32 +1,14 @@
-# bot/facade.py
-
-from telebot import TeleBot
-from utils.bot.keyboard_utils import create_reply_keyboard, create_inline_keyboard
-from utils.bot.menu_utils import create_menu_options
+from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton
 
 class BotFacade:
-    def __init__(self, bot: TeleBot):
+    def __init__(self, bot):
         self.bot = bot
 
-    def send_message_with_reply_keyboard(self, chat_id, text, buttons):
-        """
-        Отправляет сообщение с reply-клавиатурой.
-        """
-        keyboard = create_reply_keyboard(buttons)
+    def send_inline_keyboard(self, chat_id, text, buttons):
+        keyboard = InlineKeyboardMarkup(row_width=1)
+        for text_btn, callback in buttons:
+            keyboard.add(InlineKeyboardButton(text_btn, callback_data=callback))
         self.bot.send_message(chat_id, text, reply_markup=keyboard)
 
-    def send_message_with_inline_keyboard(self, chat_id, text, options):
-        """
-        Отправляет сообщение с inline-клавиатурой.
-        """
-        buttons = create_menu_options(options)
-        keyboard = create_inline_keyboard([buttons])
-        self.bot.send_message(chat_id, text, reply_markup=keyboard)
-
-    def handle_callback_query(self, call):
-        """
-        Обрабатывает callback-запросы от inline-кнопок.
-        """
-        self.bot.answer_callback_query(call.id)
-        self.bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id,
-                                   text=f"Вы выбрали: {call.data}")
+    def send_message(self, chat_id, text):
+        self.bot.send_message(chat_id, text)
