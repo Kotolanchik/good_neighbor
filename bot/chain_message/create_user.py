@@ -1,5 +1,4 @@
-
-@bot.message_handler(commands=["create_profile"])
+@bot.message_handler(commands=["edit_card"])
 def create_profile(message: Message):
     """
     Команда /create_profile.
