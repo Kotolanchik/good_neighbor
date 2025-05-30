@@ -1,3 +1,3 @@
 pip install -r requirements.txt
-dasd
+dasdв
 python bot/main.py
