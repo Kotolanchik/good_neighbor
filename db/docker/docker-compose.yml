@@ -1,0 +1,24 @@
+# docker-compose.yml
+
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:latest
+    container_name: good_neighbor_postgres
+    environment:
+      POSTGRES_DB: good_neighbor_db
+      POSTGRES_USER: your_username
+      POSTGRES_PASSWORD: your_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - good_neighbor_network
+
+volumes:
+  postgres_data:
+
+networks:
+  good_neighbor_network:
