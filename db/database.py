@@ -34,7 +34,6 @@ CREATE TABLE IF NOT EXISTS user_skills (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     user_id INTEGER,
     skill_id INTEGER,
-    level TEXT,
     FOREIGN KEY (user_id) REFERENCES users(id),
     FOREIGN KEY (skill_id) REFERENCES skills(id)
 )
@@ -52,7 +51,15 @@ CREATE TABLE IF NOT EXISTS documents (
 )
 ''')
 
+# Функция добавления скилла — объявляем первой
+def add_skill(name, description=None):
+    try:
+        cursor.execute('INSERT INTO skills (name, description) VALUES (?, ?)', (name, description))
+        conn.commit()
+    except sqlite3.IntegrityError:
+        pass  # скилл с таким именем уже есть
 
+# Инициализация скиллов — вызывается после объявления add_skill
 def init_skills():
     skills_list = [
         ("Первая помощь", "Навыки оказания экстренной помощи при травмах и несчастных случаях"),
@@ -70,9 +77,8 @@ def init_skills():
         add_skill(name, desc)
 
 
-conn.commit()
 init_skills()
-
+conn.commit()
 
 # Функция сохранения/обновления профиля пользователя
 def save_user_profile(user_data):
@@ -109,30 +115,33 @@ def add_skill(name, description=None):
     except sqlite3.IntegrityError:
         pass  # скилл с таким именем уже есть
 
+
 # Получить все скиллы
 def get_all_skills():
     cursor.execute('SELECT id, name, description FROM skills')
     return cursor.fetchall()
 
-# Добавить скилл пользователю с уровнем
-def add_user_skill(telegram_id, skill_name, level):
+# Добавить скилл пользователю с
+
+
+def add_user_skill_by_id(telegram_id, skill_id):
     user_id = get_user_id(telegram_id)
     if not user_id:
         return False
-    cursor.execute('SELECT id FROM skills WHERE name = ?', (skill_name,))
+
+    # Проверка существования навыка
+    cursor.execute('SELECT id FROM skills WHERE id = ?', (skill_id,))
     skill = cursor.fetchone()
     if not skill:
-        add_skill(skill_name)
-        cursor.execute('SELECT id FROM skills WHERE name = ?', (skill_name,))
-        skill = cursor.fetchone()
-    skill_id = skill[0]
-    # Проверим, есть ли уже этот скилл у пользователя
+        return False
+
+    # Проверка, есть ли уже этот навык у пользователя
     cursor.execute('SELECT id FROM user_skills WHERE user_id = ? AND skill_id = ?', (user_id, skill_id))
     exists = cursor.fetchone()
-    if exists:
-        cursor.execute('UPDATE user_skills SET level = ? WHERE id = ?', (level, exists[0]))
-    else:
-        cursor.execute('INSERT INTO user_skills (user_id, skill_id, level) VALUES (?, ?, ?)', (user_id, skill_id, level))
+
+    if not exists:
+        cursor.execute('INSERT INTO user_skills (user_id, skill_id) VALUES (?, ?)', (user_id, skill_id))
+
     conn.commit()
     return True
 
@@ -142,7 +151,7 @@ def get_user_skills(telegram_id):
     if not user_id:
         return []
     cursor.execute('''
-        SELECT skills.name, user_skills.level 
+        SELECT skills.name
         FROM user_skills 
         JOIN skills ON user_skills.skill_id = skills.id
         WHERE user_skills.user_id = ?
@@ -172,6 +181,31 @@ def get_user_documents(telegram_id):
         WHERE user_id = ?
     ''', (user_id,))
     return cursor.fetchall()
+
+
+def get_user_profile(telegram_id):
+    # пример на SQL, адаптируйте под вашу БД
+    cursor = conn.cursor()
+    cursor.execute("SELECT age, gender, city, residential_complex, bio FROM users WHERE telegram_id = %s", (telegram_id,))
+    row = cursor.fetchone()
+    if not row:
+        return None
+    return {
+        "age": row[0],
+        "gender": row[1],
+        "city": row[2],
+        "residential_complex": row[3],
+        "bio": row[4]
+    }
+def get_user_skills_names(telegram_id):
+    cursor = conn.cursor()
+    cursor.execute("""
+        SELECT s.name 
+        FROM skills s
+        JOIN user_skills us ON s.id = us.skill_id
+        WHERE us.telegram_id = %s
+    """, (telegram_id,))
+    return [row[0] for row in cursor.fetchall()]
 
 
 
